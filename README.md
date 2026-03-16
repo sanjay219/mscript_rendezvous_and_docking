@@ -49,223 +49,278 @@ The simulation also includes **3D visualization using MATLAB
 
 ------------------------------------------------------------------------
 
-# Environment and Physical Constants
 
-  ----------------------------------------------------------------------------
-  Parameter       Symbol         Value          Unit           Description
-  --------------- -------------- -------------- -------------- ---------------
-  Earth           μ              3.986004418 ×  m³/s²          Standard
-  gravitational                  10¹⁴                          gravitational
-  parameter                                                    parameter of
-                                                               Earth
+## Environment and Physical Constants
 
-  Earth radius    Rₑ             6,378,137      m              Mean Earth
-                                                               radius
-  ----------------------------------------------------------------------------
+| Parameter | Symbol | Value | Unit | Description |
+|---|---:|---:|---|---|
+| Earth gravitational parameter | $\mu$ | $3.986004418 \times 10^{14}$ | m³/s² | Standard gravitational parameter of Earth |
+| Earth radius | $R_e$ | 6,378,137 | m | Mean Earth radius |
 
-------------------------------------------------------------------------
+---
 
-# Target Spacecraft Orbit
+## Target Spacecraft Orbit
 
-  --------------------------------------------------------------------------
-  Parameter      Symbol         Value          Unit           Description
-  -------------- -------------- -------------- -------------- --------------
-  Orbit altitude h              500,000        m              Target orbit
-                                                              altitude
+| Parameter | Symbol | Value | Unit | Description |
+|---|---:|---:|---|---|
+| Orbit altitude | $h$ | 500,000 | m | Target orbit altitude |
+| Orbit radius | $a_T$ | 6,878,137 | m | Circular orbit radius |
+| Inclination | $i$ | 30 | deg | Orbital inclination |
+| Right Ascension of Ascending Node | $\Omega$ | 40 | deg | Orbital plane orientation |
+| Argument of periapsis | $\omega$ | 0 | deg | Orbit orientation |
+| True anomaly | $\nu_0$ | 20 | deg | Initial orbital position |
+| Mean motion | $n$ | $\approx 0.0011$ | rad/s | Orbital angular velocity |
+| Orbital period | $T$ | $\approx 5660$ | s | Approximately 94 minutes |
 
-  Orbit radius   aₜ             6,878,137      m              Circular orbit
-                                                              radius
+---
 
-  Inclination    i              30             deg            Orbital
-                                                              inclination
+## Relative Motion Initial Conditions
 
-  Right          Ω              40             deg            Orbital plane
-  Ascension of                                                orientation
-  Ascending Node                                              
+The simulation uses the **Hill frame** (also called the **LVLH frame**).
 
-  Argument of    ω              0              deg            Orbit
-  periapsis                                                   orientation
+### Hill Frame Axes
 
-  True anomaly   ν₀             20             deg            Initial
-                                                              orbital
-                                                              position
+| Axis | Description |
+|---|---|
+| $x$ | Radial direction (R-bar) |
+| $y$ | Along-track direction (V-bar) |
+| $z$ | Cross-track direction |
 
-  Mean motion    n              ≈0.0011        rad/s          Orbital
-                                                              angular
-                                                              velocity
+### Initial Chaser State
 
-  Orbital period T              ≈5660          s              Orbital period
-                                                              (\~94 min)
-  --------------------------------------------------------------------------
+| Parameter | Value | Unit | Description |
+|---|---:|---|---|
+| Radial offset | -5000 | m | Chaser starts 5 km below target |
+| Along-track offset | 100 | m | Small along-track displacement |
+| Cross-track offset | 50 | m | Small cross-track displacement |
+| Relative velocity | $[0,\,0,\,0]$ | m/s | Initial relative velocity |
 
-------------------------------------------------------------------------
+### Desired Rendezvous State
 
-# Relative Motion Initial Conditions
+| Parameter | Value | Unit | Description |
+|---|---:|---|---|
+| Radial position | -1000 | m | 1 km below target |
+| Relative velocity | $[0,\,0,\,0]$ | m/s | Zero relative velocity |
 
-The simulation uses the **Hill frame (Local Vertical Local Horizontal
-frame)**.
+---
 
-Axes definition:
+## Spacecraft Physical Properties
 
-  Axis   Description
-  ------ -------------------------------
-  x      Radial (R-bar direction)
-  y      Along-track (V-bar direction)
-  z      Cross-track
+| Parameter | Symbol | Value | Unit | Description |
+|---|---:|---:|---|---|
+| Moment of inertia (x) | $I_x$ | 120 | kg·m² | Spacecraft inertia |
+| Moment of inertia (y) | $I_y$ | 100 | kg·m² | Spacecraft inertia |
+| Moment of inertia (z) | $I_z$ | 80 | kg·m² | Spacecraft inertia |
+| Initial quaternion | $q_0$ | $[1,\,0,\,0,\,0]$ | — | Identity quaternion |
+| Initial angular velocity | $\omega_0$ | $[0,\,0,\,0]$ | rad/s | No initial rotation |
 
-Initial chaser state:
+> In the current baseline model, **mass is not explicitly used in translational propagation** because the CW docking controller is implemented in **acceleration form** rather than force form.  
+> If required, mass can be introduced later to convert thrust force into acceleration and to model propellant depletion.
 
-  Parameter            Value       Unit   Description
-  -------------------- ----------- ------ ---------------------------------
-  Radial offset        -5000       m      Chaser starts 5 km below target
-  Along-track offset   100         m      Small along-track displacement
-  Cross-track offset   50          m      Small cross-track displacement
-  Relative velocity    \[0 0 0\]   m/s    Initial relative velocity
+---
 
-Desired rendezvous state:
+## Rendezvous Optimization
 
-  Parameter           Value       Unit   Description
-  ------------------- ----------- ------ ------------------------
-  Radial position     -1000       m      1 km below target
-  Relative velocity   \[0 0 0\]   m/s    Zero relative velocity
-
-------------------------------------------------------------------------
-
-# Spacecraft Physical Properties
-
-  Parameter                  Symbol   Value         Unit    Description
-  -------------------------- -------- ------------- ------- ---------------------
-  Moment of inertia (x)      Iₓ       120           kg·m²   Spacecraft inertia
-  Moment of inertia (y)      Iᵧ       100           kg·m²   Spacecraft inertia
-  Moment of inertia (z)      I_z      80            kg·m²   Spacecraft inertia
-  Initial quaternion         q₀       \[1 0 0 0\]   --      Identity quaternion
-  Initial angular velocity   ω₀       \[0 0 0\]     rad/s   No initial rotation
-
-------------------------------------------------------------------------
-
-# Rendezvous Optimization
-
-The rendezvous maneuver is solved using **nonlinear constrained
-optimization**.
+The rendezvous maneuver is solved using **nonlinear constrained optimization**.
 
 ### Optimization Variables
 
-  Variable           Description
-  ------------------ ----------------------------------
-  First burn time    Time of first impulsive maneuver
-  Second burn time   Time after first burn
-  Δv₁                First burn velocity vector
-  Δv₂                Second burn velocity vector
+| Variable | Description |
+|---|---|
+| First burn time | Time of first impulsive maneuver |
+| Second burn time | Time after first burn |
+| $\Delta v_1$ | First burn velocity vector |
+| $\Delta v_2$ | Second burn velocity vector |
 
 ### Objective Function
 
-J = \|\|Δv₁\|\|² + \|\|Δv₂\|\|²
+The optimization minimizes total impulsive maneuver cost:
+
+$$
+J = \lVert \Delta v_1 \rVert^2 + \lVert \Delta v_2 \rVert^2
+$$
 
 ### Optimization Process
 
-1.  Initial solution using **fsolve**
-2.  Refined optimization using **fmincon**
+1. Generate an initial feasible guess using **`fsolve`**
+2. Refine the solution using **`fmincon`**
 
-------------------------------------------------------------------------
+### Bounds Used in the Example
 
-# Relative Motion Model
+| Parameter | Value | Unit |
+|---|---:|---|
+| Minimum first burn time | 200 | s |
+| Maximum first burn time | 86,400 | s |
+| Burn component bounds | $\pm 5$ | m/s |
 
-Relative motion between spacecraft is modeled using the
-**Clohessy--Wiltshire (CW) equations**.
+---
 
-State-space form:
+## Relative Motion Model
 
-ẋ = Ax + Bu
+Relative motion between chaser and target is modeled using the **Clohessy–Wiltshire (CW) equations**.
 
-------------------------------------------------------------------------
+State vector:
 
-# Docking Controller
+$$
+x =
+\begin{bmatrix}
+x & y & z & \dot{x} & \dot{y} & \dot{z}
+\end{bmatrix}^T
+$$
 
-## Translational Controller
+Continuous-time state-space form:
 
-An **LQR (Linear Quadratic Regulator)** controller is used for relative
-position tracking.
+$$
+\dot{x} = A x + B u
+$$
 
-Controller form:
+with
 
+$$
+A =
+\begin{bmatrix}
+0 & 0 & 0 & 1 & 0 & 0 \\
+0 & 0 & 0 & 0 & 1 & 0 \\
+0 & 0 & 0 & 0 & 0 & 1 \\
+3n^2 & 0 & 0 & 0 & 2n & 0 \\
+0 & 0 & 0 & -2n & 0 & 0 \\
+0 & 0 & -n^2 & 0 & 0 & 0
+\end{bmatrix},
+\qquad
+B =
+\begin{bmatrix}
+0 & 0 & 0 \\
+0 & 0 & 0 \\
+0 & 0 & 0 \\
+1 & 0 & 0 \\
+0 & 1 & 0 \\
+0 & 0 & 1
+\end{bmatrix}
+$$
+
+where:
+
+- $x, y, z$ are relative position coordinates in the Hill frame
+- $\dot{x}, \dot{y}, \dot{z}$ are relative velocity components
+- $u = [u_x, u_y, u_z]^T$ is commanded control acceleration
+
+---
+
+## Docking Controller
+
+### Translational Controller
+
+An **LQR (Linear Quadratic Regulator)** controller is used for relative position tracking during docking.
+
+Controller law:
+
+$$
 u = -K(x - x_d)
+$$
 
-Weighting matrices:
+where:
 
-  Matrix   Value
-  -------- ---------------------------------
-  Q        diag(5e-4, 5e-3, 5e-3, 1, 8, 8)
-  R        diag(1,1,1)
+- $x$ is the current relative state
+- $x_d$ is the desired relative state
+- $K$ is the optimal state feedback gain matrix
 
-------------------------------------------------------------------------
+### Weighting Matrices
 
-# Thruster Limits
+| Matrix | Value |
+|---|---|
+| $Q$ | `diag(5e-4, 5e-3, 5e-3, 1, 8, 8)` |
+| $R$ | `diag(1, 1, 1)` |
 
-  Parameter                            Value   Unit
-  ------------------------------------ ------- ------
-  Maximum translational acceleration   0.02    m/s²
+---
 
-------------------------------------------------------------------------
+## Attitude Model and Controller
 
-# Docking Guidance
+Spacecraft attitude is modeled using **quaternion kinematics** and **rigid-body rotational dynamics**.
 
-  Parameter                  Value   Unit
-  -------------------------- ------- ------
-  Initial closing velocity   0.3     m/s
-  Final closing velocity     0.01    m/s
-  Docking safety radius      3       m
+### Quaternion Kinematics
 
-------------------------------------------------------------------------
+$$
+\dot{q} = \frac{1}{2}\Omega(\omega) q
+$$
 
-# Numerical Integration
+### Rigid Body Dynamics
 
-  Parameter    Value
-  ------------ -------
-  Integrator   RK4
-  Time step    2 s
+$$
+I \dot{\omega} + \omega \times (I\omega) = \tau
+$$
 
-------------------------------------------------------------------------
+### Quaternion PD Control
 
-# Visualization
+$$
+\tau = -K_q\,q_e^{vec} - K_\omega\,\omega_e
+$$
 
-The mission is visualized using MATLAB **satelliteScenario**.
+where:
 
-------------------------------------------------------------------------
+- $q_e^{vec}$ is the vector part of the quaternion error
+- $\omega_e$ is the angular velocity error
+- $\tau$ is the control torque
 
-# Simulation Phases
+---
 
-  Phase                    Description
-  ------------------------ ------------------------
-  Initial separation       \~5 km
-  Rendezvous target        1 km below target
-  Controlled approach      1 km → 20 m
-  Final docking approach   20 m → 3 m
-  Docking completion       contact radius reached
+## Thruster and Docking Limits
 
-------------------------------------------------------------------------
+| Parameter | Value | Unit | Description |
+|---|---:|---|---|
+| Maximum translational acceleration | 0.02 | m/s² | Saturation limit on docking acceleration |
+| Initial closing velocity | 0.3 | m/s | Nominal approach speed |
+| Final closing velocity | 0.01 | m/s | Reduced speed near docking |
+| Docking safety radius | 3 | m | Keep-out / contact threshold used for visual-safe docking |
 
-# Assumptions
+---
 
--   Circular reference orbit
--   Linearized CW relative dynamics
--   Impulsive rendezvous burns
--   Acceleration-based thruster model
--   Simplified collision envelope
+## Numerical Integration
 
-------------------------------------------------------------------------
+| Parameter | Value |
+|---|---|
+| Integrator | RK4 |
+| Time step | 2 s |
 
-# Possible Future Improvements
+---
 
--   Nonlinear orbital dynamics model
--   J2 perturbation effects
--   Propellant mass depletion
--   Full collision geometry model
--   Model predictive docking control
--   Monte Carlo robustness testing
+## Visualization
 
-------------------------------------------------------------------------
+The mission is visualized using MATLAB **`satelliteScenario`**.
 
-# Summary
+Visualization features include:
+
+- 3D spacecraft models
+- Colored orbit trajectories
+- Docking port visualization
+- Real-time mission playback
+
+---
+
+## Simulation Phases
+
+| Phase | Description |
+|---|---|
+| Initial separation | Approximately 5 km |
+| Rendezvous target | 1 km below target |
+| Controlled approach | 1 km → 20 m |
+| Final docking approach | 20 m → docking safety radius |
+| Docking completion | Simulation stops when docking threshold is reached |
+
+---
+
+## Assumptions
+
+The current framework is a **baseline research model** and uses the following assumptions:
+
+- Circular reference orbit
+- Linearized CW relative dynamics
+- Impulsive rendezvous burns
+- Acceleration-based thruster model
+- Simplified collision envelope / keep-out radius
+- No propellant depletion in docking control
+- No J2 or higher-order orbital perturbations
+
+---
 
 This simulation demonstrates:
 
