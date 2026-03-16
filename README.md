@@ -23,7 +23,7 @@ The simulation also includes **3D visualization using MATLAB
 
 # Simulation Architecture
 
-    Main Script
+    Main Script (run this file only : main_rendezvous_docking.m)
     │
     ├── Mission Setup
     │
